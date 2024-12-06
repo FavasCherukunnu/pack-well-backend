@@ -1,0 +1,90 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model m01_admin {
+  id                Int       @id @default(autoincrement()) // Auto-incremented ID
+  m01_name          String    @db.VarChar(50) // Max length 50 characters
+  m01_email         String    @db.VarChar(50) // Max length 50 characters
+  m01_phone         String    @db.VarChar(50) // Max length 50 characters
+  m01_address       String?   @db.Text // Text field (no length limit)
+  m01_role          String    @db.VarChar(50) // Max length 50 characters
+  m01_password      String    @db.VarChar(50) // Max length 50 characters
+  m01_refresh_token String?   @db.VarChar(50) // Max length 50 characters
+  m01_is_active     Int       @default(1) // Default value is 1
+  created_at        DateTime  @default(now()) // Automatically set to current time when created
+  updated_at        DateTime  @updatedAt // Automatically updated on modification
+  deleted_at        DateTime? // Nullable field for deletion timestamp
+
+  @@map("m01_admin") // Map to the exact table name
+}
+
+model m04_product_category {
+  id                         Int     @id @default(autoincrement()) // Auto-incremented ID
+  m04_category_name          String  @db.VarChar(255) // Max length 255 characters
+  m04_image                  String? @db.VarChar(255) // Nullable string for image URL, max length 255
+  m04_m04_parent_category_id Int? // Nullable field for self-referencing (parent category)
+  m04_is_active              Int     @default(1) // Default value is 1
+  m04_order                  Int     @default(0) // Default value is 0
+  m04_description            String? @db.Text // Nullable text field for category description
+  created_at     DateTime               @default(now()) // Automatically set to current time when created
+  updated_at     DateTime               @updatedAt // Automatically updated on modification
+  deleted_at     DateTime? // Nullable field for deletion timestamp
+  // Self-referencing relationship to the ProductCategory model
+  m06_sku        m06_sku[]
+  parentCategory m04_product_category?  @relation("CategoryParent", fields: [m04_m04_parent_category_id], references: [id])
+  subCategories  m04_product_category[] @relation("CategoryParent")
+
+  @@map("m04_product_category") // Map to the exact table name (use your actual table name)
+}
+
+model m06_sku {
+  id                       Int       @id @default(autoincrement()) // Auto-incremented ID
+  m06_sku                  String    @db.VarChar(255) // Max length 255 characters
+  m06_m04_product_category Int // Foreign Key
+  m06_product_sku_name     String    @db.VarChar(255) // Max length 255 characters
+  m06_thumbnail_image      String    @db.Text // Max length 255 characters (image URL or file path)
+  m06_description          String    @db.Text // Text field for description
+  m06_mrp                  Float // Product MRP (Maximum Retail Price)
+  m06_price                Float // Product price
+  m06_quantity             Int // Quantity of the product available
+  m06_is_new               Int       @default(0) // Default value for new product
+  m06_single_order_limit   Int? // Limit of single order quantity
+  m06_is_active            Int       @default(1) // Default value to mark as active
+  created_at               DateTime  @default(now()) // Automatically set to current time when created
+  updated_at               DateTime  @updatedAt // Automatically updated on modification
+  deleted_at               DateTime? // Nullable field for deletion timestamp
+
+  product_category m04_product_category? @relation(fields: [m06_m04_product_category], references: [id]) // Foreign Key
+
+  m07_sku_image m07_sku_image[]
+  @@map("m06_sku") // Map to the exact table name (adjust according to your DB table name)
+}
+
+
+model m07_sku_image {
+  id                     Int     @id @default(autoincrement())
+  m07_image_path         String   // TEXT field
+  m07_m06_product_sku_id Int     // Many-to-one relation with another model (m06_product_sku)
+  m07_order              Int     // Order field
+  m07_is_active          Int     // Active flag (1 for active)
+  created_at               DateTime  @default(now()) // Automatically set to current time when created
+  updated_at               DateTime  @updatedAt // Automatically updated on modification
+  deleted_at               DateTime? // Nullable field for deletion timestamp
+
+  // Relations (assumes the related model `M06ProductSku` exists)
+  m06ProductSku          m06_sku @relation(fields: [m07_m06_product_sku_id], references: [id])
+
+  @@map("m07_sku_image") // Map this model to the actual table name in the database
+}

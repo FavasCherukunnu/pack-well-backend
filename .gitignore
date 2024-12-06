@@ -1,0 +1,14 @@
+/node_modules
+.env
+# /dist
+# Ignore all files inside /public except for .sample.txt
+/public/*
+!/public/temp/
+!/public/temp/compressed
+
+/public/temp/*
+!/public/temp/compressed
+!/public/temp/.sample.txt
+
+/public/temp/compressed/*
+!/public/temp/compressed/.sample.txt
