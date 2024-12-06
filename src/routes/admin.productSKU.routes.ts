@@ -109,9 +109,9 @@ router.delete('/product-sku/:id',
 
 const productSKUReorderImageSchema = z.object({
     images: z.array(z.object({
-        _id: z.string().trim().min(1, "Image ID is required"),
-        M07_M06_product_sku_id: z.string().trim().min(1, "M07_M06_product_sku_id is required"),
-        M07_order: z.union([z.number(), z.string()]).refine(
+        id: z.number(),
+        m07_m06_product_sku_id: z.number(),
+        m07_order: z.union([z.number(), z.string()]).refine(
             (val) => !isNaN(Number(val)) && Number(val) >= 0,
             { message: "must be a number greater than or equal to 0" }),
     })).min(1, "At least one image is required"),
@@ -130,10 +130,10 @@ router.delete('/product-sku-image/:id',
 const productSKUCreateImageSchema = z.object({
     skuId: z.string().trim().min(1, "Product SKU ID is required"),
     images: z.array(z.object({
-        M07_order: z.union([z.number(), z.string()]).refine(
+        m07_order: z.union([z.number(), z.string()]).refine(
             (val) => !isNaN(Number(val)) && Number(val) >= 0,
             { message: "must be a number greater than or equal to 0" }),
-        M07_is_active: z.union([z.number(), z.string()]).refine((val) => [0, 1, '0', '1'].includes(val), { message: "must be 0 or 1" }),
+        m07_is_active: z.union([z.number(), z.string()]).refine((val) => [0, 1, '0', '1'].includes(val), { message: "must be 0 or 1" }),
     })).min(1, "At least one image is required"),
 })
 

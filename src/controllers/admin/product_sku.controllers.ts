@@ -193,7 +193,7 @@ export const updateSKUController = async (req: TypedRequestBody<UpdateSkuRequest
     const M06_thumbnail_image = (req.files as any)?.m06_thumbnail_image?.[0] as Express.Multer.File;
     try {
         const { id } = req.params;
-        const { m06_sku, m06_product_sku_name, m06_description, m06_mrp, m06_price, m06_quantity, m06_is_new, m06_single_order_limit, m06_is_active, is_thumnail_new,m06_m04_product_category_id } = req.body;
+        const { m06_sku, m06_product_sku_name, m06_description, m06_mrp, m06_price, m06_quantity, m06_is_new, m06_single_order_limit, m06_is_active, is_thumnail_new, m06_m04_product_category_id } = req.body;
 
         const IproductSKU = await prisma.m06_sku.findUnique({ where: { id: Number(id), deleted_at: null } });
         if (!IproductSKU) {
@@ -249,7 +249,7 @@ export const updateSKUController = async (req: TypedRequestBody<UpdateSkuRequest
                 m06_quantity: Number(m06_quantity),
                 m06_is_new: m06_is_new ? Number(m06_is_new) : 0,
                 m06_single_order_limit: m06_single_order_limit ? Number(m06_single_order_limit) : null,
-                m06_m04_product_category:Number(m06_m04_product_category_id),
+                m06_m04_product_category: Number(m06_m04_product_category_id),
                 m06_is_active: Number(m06_is_active),
                 m06_thumbnail_image: thumbnailImageUrl.length > 0 ? thumbnailImageUrl : IproductSKU.m06_thumbnail_image
             }
@@ -282,7 +282,11 @@ export const readSKUController = async (req: Request, res: Response, next: NextF
                 deleted_at: null
             },
             include: {
-                m07_sku_image: true
+                m07_sku_image: {
+                    where:{
+                        deleted_at:null
+                    }
+                }
             }
         })
 
@@ -394,7 +398,7 @@ export const deleteSkuController = async (req: TypedRequestBody<{}>, res: Respon
 
 
 export const reorderProductSkuImagesController = async (
-    req: Request<{ skuId: string }, {}, { images: { _id: string; M07_M06_product_sku_id: string; M07_order: number }[] }>,
+    req: Request<{ skuId: string }, {}, { images: { id: number; m07_m06_product_sku_id: number; m07_order: number }[] }>,
     res: Response,
     next: NextFunction
 ) => {
@@ -409,7 +413,12 @@ export const reorderProductSkuImagesController = async (
         }
 
         // 1.2 - Retrieve all images associated with the skuId from the database
-        const existingImages = await ProductSKUImage.find({ M07_M06_product_sku_id: skuId });
+        const existingImages = await prisma.m07_sku_image.findMany({
+            where: {
+                m07_m06_product_sku_id: Number(skuId),
+                deleted_at: null,
+            },
+        })
 
         // 1.3 - Check if count matches between database images and request body
         if (existingImages.length !== images.length) {
@@ -417,42 +426,44 @@ export const reorderProductSkuImagesController = async (
         }
 
         // Map existing images by `_id` for quick lookup
-        const existingImagesMap = new Map(existingImages.map(img => [img._id.toString(), img]));
+        const existingImagesMap = new Map(existingImages.map(img => [img.id, img]));
 
         // 1.4 - Validate each image entry in the request
-        const idSet = new Set<string>(); // To track unique _id values
+        const idSet = new Set<number>(); // To track unique _id values
         const orderSet = new Set<number>(); // To track unique order values
-        const firstSkuId = images[0].M07_M06_product_sku_id;
+        const firstSkuId = images[0].m07_m06_product_sku_id;
         for (const img of images) {
-            const existingImg = existingImagesMap.get(img._id);
+            const existingImg = existingImagesMap.get(img.id);
 
             // Check if each image in the request has a matching `_id` and `M07_M06_product_sku_id` in the database
-            if (!existingImg || existingImg.M07_M06_product_sku_id.toString() !== firstSkuId) {
+            if (!existingImg || existingImg.m07_m06_product_sku_id!== firstSkuId) {
                 return res.status(409).json(new ApiError(409, "There is a conflict in images", "There is a conflict in images"));
             }
 
             // Ensure each `_id` is unique
-            if (idSet.has(img._id)) {
+            if (idSet.has(img.id)) {
                 return res.status(409).json(new ApiError(409, "There is a conflict in images", "There is a conflict in images"));
             }
-            idSet.add(img._id);
+            idSet.add(img.id);
 
             // Ensure `M07_order` is an integer and is unique
-            if (!Number.isInteger(img.M07_order) || orderSet.has(img.M07_order)) {
+            if (!Number.isInteger(img.m07_order) || orderSet.has(img.m07_order)) {
                 return res.status(409).json(new ApiError(409, "There is a conflict in images", "There is a conflict in images"));
             }
-            orderSet.add(img.M07_order);
+            orderSet.add(img.m07_order);
         }
 
         // Step 2: Update `M07_order` for each image in the database using `bulkWrite`
-        const bulkOperations = images.map(img => ({
-            updateOne: {
-                filter: { _id: new ObjectId(img._id) },
-                update: { M07_order: img.M07_order },
-            },
-        }));
+        // Prepare the updates for each image
+        const updateOperations = images.map(img => {
+            return prisma.m07_sku_image.update({
+                where: { id: Number(img.id) }, // Assuming 'id' is the primary key
+                data: { m07_order: img.m07_order },
+            });
+        });
 
-        await ProductSKUImage.bulkWrite(bulkOperations);
+        // Run all update operations in a single transaction
+        const updatedImages = await prisma.$transaction(updateOperations);
 
         return res.status(200).json(new ApiResponse(true, 200, "successfully reordered product sku images", "successfully reordered product sku images"));
 
@@ -466,21 +477,18 @@ export const deleteProductSkuImageController = async (req: Request<{ id: string 
     const { id } = req.params;
 
     try {
-        const image = await ProductSKUImage.findOne({ _id: id, M07_deleted_at: null });
+        const image = await prisma.m07_sku_image.findUnique({ where: { id: Number(id), deleted_at: null } });
 
         if (!image) {
             return next(new Error("Product sku image not found"));
         }
 
-        const skuImages = await ProductSKUImage.find({ M07_M06_product_sku_id: image.M07_M06_product_sku_id, M07_deleted_at: null });
+        const skuImages = await prisma.m07_sku_image.findMany({ where: { m07_m06_product_sku_id: image.m07_m06_product_sku_id, deleted_at: null } });
         if (skuImages.length === 1) {
             return res.status(400).json(new ApiError(400, "Cannot delete the last image of a product sku", "Cannot delete the last image of a product sku"));
         }
 
-        await deleteImageFromCloudinary(image.M07_image_path);
-
-        image.M07_deleted_at = new Date();
-        await image.save();
+        await prisma.m07_sku_image.update({ where: { id: Number(id) }, data: { deleted_at: new Date() } });
 
         res.status(200).json(new ApiResponse(true, 200, "successfully deleted product sku image", "successfully deleted product sku image"));
 
@@ -491,7 +499,7 @@ export const deleteProductSkuImageController = async (req: Request<{ id: string 
 
 
 export const createProductSkuImageController = async (
-    req: Request<{}, {}, { skuId: string, images: { M07_order: string; M07_is_active: number, M07_image_path: Express.Multer.File, cloudedPath: string, }[] }>,
+    req: Request<{}, {}, { skuId: string, images: { m07_order: string; m07_is_active: number, m07_image_path: Express.Multer.File, cloudedPath: string, }[] }>,
     res: Response,
     next: NextFunction
 ) => {
@@ -515,13 +523,13 @@ export const createProductSkuImageController = async (
                     if (!file) {
                         return res.status(400).json(new ApiError(400, "image must required", "image must required"));
                     }
-                    const imageMatch = file.fieldname.match(/^images\[(\d+)\]\[M07_image_path\]$/);
+                    const imageMatch = file.fieldname.match(/^images\[(\d+)\]\[m07_image_path\]$/);
                     const index = parseInt(imageMatch?.[1] || "", 10);
                     if (imageMatch) {
                         images[index] = {
-                            M07_image_path: file,
-                            M07_order: req.body.images[index].M07_order,
-                            M07_is_active: req.body.images[index].M07_is_active,
+                            m07_image_path: file,
+                            m07_order: req.body.images[index].m07_order,
+                            m07_is_active: req.body.images[index].m07_is_active,
                             cloudedPath: ''
                         }
                     }
@@ -530,60 +538,60 @@ export const createProductSkuImageController = async (
         }
 
         // 1.2 - Ensure each image is less than 1 MB
-        const imageSizes = images.map(image => image.M07_image_path.size);
+        const imageSizes = images.map(image => image.m07_image_path.size);
         if (imageSizes.some(size => size > 1e+6)) {
             throw Error("Each image must be less than 1 MB");
         }
 
-        // Check if the skuId is valid
-        const sku = await ProductSKU.findOne({ _id: skuId, M06_deleted_at: null });
-        if (!sku) {
-            throw Error("Product sku not found");
-        }
+
 
 
         // 1.3 - Retrieve all images associated with the skuId from the database
-        const existingImages = await ProductSKUImage.find({ M07_M06_product_sku_id: skuId, M07_deleted_at: null });
+        const existingImages = await prisma.m07_sku_image.findMany({
+            where: {
+                m07_m06_product_sku_id: Number(skuId),
+                deleted_at: null
+            }
+        })
 
         // 1.4 - Check if count matches between database images and request body
         if (existingImages.length + images.length > 5) {
             throw Error("Sku can only have a maximum of 5 images");
         }
 
-        const orderSet = new Set<number>(existingImages.map(img => img.M07_order));
+        const orderSet = new Set<number>(existingImages.map(img => img.m07_order));
         for (const img of images) {
             // Ensure `M07_order` is an integer and is unique
-            if (!Number.isInteger(Number(img.M07_order)) || orderSet.has(Number(img.M07_order))) {
+            if (!Number.isInteger(Number(img.m07_order)) || orderSet.has(Number(img.m07_order))) {
                 throw Error("There is a conflict in images");
             }
-            orderSet.add(Number(img.M07_order));
+            orderSet.add(Number(img.m07_order));
         }
-
-
-        // Upload images to cloudinary
-        const promises = images.map(async image => {
-            const res = await uploadImageoncloudinay(image.M07_image_path.path, '/sku/');
-            image.cloudedPath = res?.url || '';
-        });
-        await Promise.all(promises);
 
 
 
         // Step 2: Create the images in the database
         const imagesToCreate = images.map(image => ({
-            M07_M06_product_sku_id: skuId,
-            M07_image_path: image.cloudedPath,
-            M07_order: image.M07_order,
-            M07_is_active: image.M07_is_active
+            m07_m06_product_sku_id: Number(skuId),
+            m07_image_path: image.m07_image_path.path,
+            m07_order: Number(image.m07_order),
+            m07_is_active: Number(image.m07_is_active)
         }));
 
-        const createdImages = await ProductSKUImage.insertMany(imagesToCreate);
-        removeAllImageFromFileSystem(images.map(img => img.M07_image_path?.path || null))
+        await prisma.m07_sku_image.createMany({
+            data: imagesToCreate
+        })
+        const createdImages = await prisma.m07_sku_image.findMany({
+            where: {
+                m07_m06_product_sku_id: Number(skuId),
+                deleted_at: null
+            }
+        })
 
         return res.status(200).json(new ApiResponse(true, 200, "successfully created product sku images", createdImages));
 
     } catch (error) {
-        removeAllImageFromFileSystem(images.map(img => img.M07_image_path?.path || null))
+        removeAllImageFromFileSystem(images.map(img => img.m07_image_path?.path || null))
         next(error);
     }
 };
