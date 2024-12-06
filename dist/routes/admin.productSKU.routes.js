@@ -13,7 +13,7 @@ const productSKUcreateSchema = z.object({
         m06_mrp: z.union([z.number(), z.string()]).refine((val) => !isNaN(Number(val)) && Number(val) >= 1, { message: "must be a number greater than or equal to 1" }),
         m06_price: z.union([z.number(), z.string()]).refine((val) => !isNaN(Number(val)) && Number(val) >= 1, { message: "must be a number greater than or equal to 1" }),
         m06_m04_product_category_id: z.union([z.number(), z.string()]).refine((val) => !isNaN(Number(val)) && Number(val) >= 1, { message: "must be a number greater than or equal to 1" }),
-        m06_quantity: z.union([z.number(), z.string()]).refine((val) => !isNaN(Number(val)) && Number(val) >= 1, { message: "must be a number greater than or equal to 1" }),
+        m06_quantity: z.union([z.number(), z.string()]).refine((val) => !isNaN(Number(val)), { message: "must be a number" }),
         m06_is_new: z.union([z.number(), z.string()]).refine((val) => [0, 1, '0', '1'].includes(val), { message: "must be 0 or 1" }),
         m06_single_order_limit: z.union([z.number(), z.string()]).optional().refine((val) => {
             console.log(val);
@@ -27,24 +27,24 @@ const productSKUcreateSchema = z.object({
 });
 router.post('/product-sku', verifyJWTorRefreshJWT, uploadProductImages.any(), validateDataMiddleWare(productSKUcreateSchema), createSKUController);
 const productSKUUpdateSchema = z.object({
-    M06_sku: z.string().trim().min(1, "SKU is required"),
-    M06_product_sku_name: z.string().trim().min(1, "Product SKU name is required").max(100, "SKU name must be less than 100 characters"),
-    M06_description: z.string().trim().min(1, "Product SKU description is required"),
+    m06_sku: z.string().trim().min(1, "SKU is required"),
+    m06_product_sku_name: z.string().trim().min(1, "Product SKU name is required").max(100, "SKU name must be less than 100 characters"),
+    m06_description: z.string().trim().min(1, "Product SKU description is required"),
     m06_mrp: z.union([z.number(), z.string()]).refine((val) => !isNaN(Number(val)) && Number(val) >= 1, { message: "must be a number greater than or equal to 1" }),
-    M06_price: z.union([z.number(), z.string()]).refine((val) => !isNaN(Number(val)) && Number(val) >= 1, { message: "must be a number greater than or equal to 1" }),
-    M06_quantity: z.union([z.number(), z.string()]).refine((val) => !isNaN(Number(val)) && Number(val) >= 1, { message: "must be a number greater than or equal to 1" }),
-    M06_is_new: z.union([z.number(), z.string()]).refine((val) => [0, 1, '0', '1'].includes(val), { message: "must be 0 or 1" }),
-    M06_single_order_limit: z.union([z.number(), z.string()]).optional().refine((val) => {
+    m06_price: z.union([z.number(), z.string()]).refine((val) => !isNaN(Number(val)) && Number(val) >= 1, { message: "must be a number greater than or equal to 1" }),
+    m06_quantity: z.union([z.number(), z.string()]).refine((val) => !isNaN(Number(val)) && Number(val) >= 1, { message: "must be a number greater than or equal to 1" }),
+    m06_is_new: z.union([z.number(), z.string()]).refine((val) => [0, 1, '0', '1'].includes(val), { message: "must be 0 or 1" }),
+    m06_single_order_limit: z.union([z.number(), z.string()]).optional().refine((val) => {
         console.log(val);
         if (val) {
             return !isNaN(Number(val)) && Number(val) >= 1;
         }
         return true;
     }, { message: "must be a number" }),
-    M06_is_active: z.union([z.number(), z.string()]).refine((val) => [0, 1, '0', '1'].includes(val), { message: "must be 0 or 1" }),
+    m06_is_active: z.union([z.number(), z.string()]).refine((val) => [0, 1, '0', '1'].includes(val), { message: "must be 0 or 1" }),
     is_thumnail_new: z.union([z.number(), z.string()]).refine((val) => [0, 1, '0', '1'].includes(val), { message: "must be 0 or 1" }).optional(),
 });
-router.put('/product-sku/:id', verifyJWTorRefreshJWT, upload.fields([{ name: 'M06_thumbnail_image', maxCount: 1 }]), validateDataMiddleWare(productSKUUpdateSchema), updateSKUController);
+router.put('/product-sku/:id', verifyJWTorRefreshJWT, uploadProductImages.fields([{ name: 'm06_thumbnail_image', maxCount: 1 }]), validateDataMiddleWare(productSKUUpdateSchema), updateSKUController);
 router.get('/product-sku/:id', verifyJWTorRefreshJWT, readSKUController);
 router.get('/product-sku', verifyJWTorRefreshJWT, validateParamsMiddleWare(z.object({
     page: z.string().refine((val) => /^\d+$/.test(val), {

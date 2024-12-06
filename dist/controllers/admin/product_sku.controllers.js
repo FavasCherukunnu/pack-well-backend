@@ -103,67 +103,75 @@ export const createSKUController = async (req, res, next) => {
     }
 };
 export const updateSKUController = async (req, res, next) => {
-    // let thumbnailImageUrl = ''
-    // const M06_thumbnail_image = (req.files as any)?.M06_thumbnail_image?.[0] as Express.Multer.File;
-    // try {
-    //     const { id } = req.params;
-    //     const { M06_sku, M06_product_sku_name, M06_description, M06_MRP, M06_price, M06_quantity, M06_is_new, M06_single_order_limit, M06_is_active, is_thumnail_new } = req.body;
-    //     const IproductSKU = await ProductSKU.findOne({ _id: id, M06_deleted_at: null });
-    //     if (!IproductSKU) {
-    //         return next(new ApiError(404, "Product SKU not found", "Product SKU not found"));
-    //     }
-    //     // check the uniqueness of sku
-    //     const isSkuUnique = await ProductSKU.findOne({ M06_sku, M06_deleted_at: null });
-    //     if (isSkuUnique && isSkuUnique._id.toString() !== id) {
-    //         return next(new ApiError(400, "SKU already exists", "SKU already exists"));
-    //     }
-    //     // if thumbnail image is new, then delete old image and save new image
-    //     if (is_thumnail_new == 1) {
-    //         console.log('first,', M06_thumbnail_image)
-    //         if (!M06_thumbnail_image) {
-    //             throw new Error("Thumbnail image is required");
-    //         }
-    //         if (!['image/png', 'image/jpg', 'image/jpeg'].includes(M06_thumbnail_image.mimetype)) {
-    //             throw new Error("Thumbnail image must be png, jpg or jpeg");
-    //         }
-    //         if (M06_thumbnail_image.size > 500000) {
-    //             throw new Error("Thumbnail image must be less than 500KB");
-    //         }
-    //         const compressedImage = await compressImage({
-    //             inputPath: M06_thumbnail_image.path,
-    //             quality: 60,
-    //             extension: M06_thumbnail_image.mimetype.split('/')[1] as 'webp' | 'jpeg' | 'png'
-    //         });
-    //         const thumbnailImage = await uploadImageoncloudinay(compressedImage, "/sku/thumbnail/");
-    //         await deleteImageFromCloudinary(IproductSKU.M06_thumbnail_image!);
-    //         deleteImageFromFileSystem(M06_thumbnail_image.path);
-    //         if (!thumbnailImage) {
-    //             throw new Error("Failed to upload thumbnail image")
-    //         }
-    //         thumbnailImageUrl = thumbnailImage.url;
-    //     }
-    //     const sku = await ProductSKU.findByIdAndUpdate(id, {
-    //         M06_sku,
-    //         M06_product_sku_name,
-    //         M06_description,
-    //         M06_MRP,
-    //         M06_price,
-    //         M06_quantity,
-    //         M06_is_new,
-    //         M06_single_order_limit,
-    //         M06_is_active,
-    //         M06_thumbnail_image: thumbnailImageUrl.length > 0 ? thumbnailImageUrl : IproductSKU.M06_thumbnail_image
-    //     }, { new: true });
-    //     if (!sku) {
-    //         throw new Error("Product sku not found");
-    //     }
-    //     return res.status(200).json(new ApiResponse(true, 200, "Successfully updated SKUs", "Success"));
-    // } catch (error) {
-    //     deleteImageFromFileSystem(M06_thumbnail_image?.path || null)
-    //     if (thumbnailImageUrl)
-    //         deleteImageFromCloudinary(thumbnailImageUrl).catch(next)
-    //     next(error);
-    // }
+    let thumbnailImageUrl = '';
+    const M06_thumbnail_image = req.files?.m06_thumbnail_image?.[0];
+    try {
+        const { id } = req.params;
+        const { m06_sku, m06_product_sku_name, m06_description, m06_mrp, m06_price, m06_quantity, m06_is_new, m06_single_order_limit, m06_is_active, is_thumnail_new, m06_m04_product_category_id } = req.body;
+        const IproductSKU = await prisma.m06_sku.findUnique({ where: { id: Number(id), deleted_at: null } });
+        if (!IproductSKU) {
+            return next(new ApiError(404, "Product SKU not found", "Product SKU not found"));
+        }
+        // check the uniqueness of sku
+        const isSkuUnique = await prisma.m06_sku.findFirst({ where: { m06_sku, deleted_at: null } });
+        if (isSkuUnique && isSkuUnique.id.toString() !== id) {
+            return next(new ApiError(400, "SKU already exists", "SKU already exists"));
+        }
+        // if thumbnail image is new, then delete old image and save new image
+        if (is_thumnail_new == 1) {
+            console.log('first,', M06_thumbnail_image);
+            if (!M06_thumbnail_image) {
+                throw new Error("Thumbnail image is required");
+            }
+            if (!['image/png', 'image/jpg', 'image/jpeg'].includes(M06_thumbnail_image.mimetype)) {
+                throw new Error("Thumbnail image must be png, jpg or jpeg");
+            }
+            if (M06_thumbnail_image.size > 500000) {
+                throw new Error("Thumbnail image must be less than 500KB");
+            }
+            const compressedImage = await compressImage({
+                inputPath: M06_thumbnail_image.path,
+                quality: 60,
+                extension: M06_thumbnail_image.mimetype.split('/')[1],
+                outputPath: 'public/thumbnail_images'
+            });
+            deleteImageFromFileSystem(IproductSKU.m06_thumbnail_image);
+            deleteImageFromFileSystem(M06_thumbnail_image.path);
+            if (!compressedImage) {
+                throw new Error("Failed to upload thumbnail image");
+            }
+            thumbnailImageUrl = compressedImage;
+        }
+        const sku = await prisma.m06_sku.update({
+            where: {
+                id: Number(id),
+                deleted_at: null
+            },
+            data: {
+                m06_sku,
+                m06_product_sku_name,
+                m06_description,
+                m06_mrp: Number(m06_mrp),
+                m06_price: Number(m06_price),
+                m06_quantity: Number(m06_quantity),
+                m06_is_new: m06_is_new ? Number(m06_is_new) : 0,
+                m06_single_order_limit: m06_single_order_limit ? Number(m06_single_order_limit) : null,
+                m06_m04_product_category: Number(m06_m04_product_category_id),
+                m06_is_active: Number(m06_is_active),
+                m06_thumbnail_image: thumbnailImageUrl.length > 0 ? thumbnailImageUrl : IproductSKU.m06_thumbnail_image
+            }
+        });
+        if (!sku) {
+            throw new Error("Product sku not found");
+        }
+        return res.status(200).json(new ApiResponse(true, 200, "Successfully updated SKUs", "Success"));
+    }
+    catch (error) {
+        deleteImageFromFileSystem(M06_thumbnail_image?.path || null);
+        if (thumbnailImageUrl)
+            deleteImageFromCloudinary(thumbnailImageUrl).catch(next);
+        next(error);
+    }
 };
 export const readSKUController = async (req, res, next) => {
     try {

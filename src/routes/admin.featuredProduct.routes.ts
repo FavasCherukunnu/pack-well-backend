@@ -15,8 +15,8 @@ router.post("/featured-product",
     verifyJWTorRefreshJWT,
     validateDataMiddleWare(
         z.object({
-            P01_product_id: z.string().trim().min(1, "Product ID is required").refine(id => mongoose.isValidObjectId(id), { message: "Product ID must be a valid MongoDB ObjectId" }),
-            P01_is_active: z.union([z.number(), z.string()]).refine((val) => [0, 1, '0', '1'].includes(val), { message: "must be 0 or 1" }).optional(),
+            p01_product_id: z.string().trim().min(1, "Product ID is required"),
+            p01_is_active: z.union([z.number(), z.string()]).refine((val) => [0, 1, '0', '1'].includes(val), { message: "must be 0 or 1" }).optional(),
         })
     ),
     addFeaturedProductController);
@@ -29,7 +29,7 @@ router.put('/featured-product-reorder',
     verifyJWTorRefreshJWT,
     validateDataMiddleWare(z.object({
         featuredProducts: z.array(z.object({
-            _id: z.string(),
+            id: z.string(),
         })).min(1, "At least one featured product is required"),
     })),
     reorderFeaturedProductsController

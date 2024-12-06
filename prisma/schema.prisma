@@ -70,6 +70,7 @@ model m06_sku {
 
   m07_sku_image m07_sku_image[]
   @@map("m06_sku") // Map to the exact table name (adjust according to your DB table name)
+  FeaturedProduct p01_featured_product[]
 }
 
 
@@ -88,3 +89,21 @@ model m07_sku_image {
 
   @@map("m07_sku_image") // Map this model to the actual table name in the database
 }
+
+
+
+model p01_featured_product {
+  id               Int       @id @default(autoincrement())  // Primary key, auto-incremented
+  p01_m06_product_id Int      // Foreign key for the product
+  p01_is_active     Boolean   @default(true)                // Active flag (1 for active, 0 for inactive)
+  p01_order         Int       // Order in the featured products list
+  created_at    DateTime  @default(now())               // Timestamp for record creation
+  updated_at    DateTime  @updatedAt                    // Timestamp for record updates
+  deleted_at    DateTime? // Nullable field for soft delete (NULL if not deleted)
+
+  // Foreign Key Relation
+  P01_M06_product_id           m06_sku   @relation(fields: [p01_m06_product_id], references: [id])
+
+  @@index([p01_m06_product_id]) // Optional index for foreign key lookup optimization
+}
+

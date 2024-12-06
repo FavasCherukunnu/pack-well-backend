@@ -154,7 +154,7 @@ export const updateProductCategoryController = async (req, res, next) => {
             data: {
                 m04_category_name: productCategory.m04_category_name,
                 m04_image: productCategory.m04_image,
-                m04_m04_parent_category_id: productCategory.m04_m04_parent_category_id,
+                m04_m04_parent_category_id: productCategory.m04_m04_parent_category_id ? Number(productCategory.m04_m04_parent_category_id) : null,
                 m04_is_active: Number(productCategory.m04_is_active),
                 m04_description: productCategory.m04_description
             },

@@ -2,17 +2,22 @@ import { Request, Response, NextFunction } from "express";
 import { FeaturedProductModel } from "../../models/featuredProduct.model.js";
 import { ProductSKU } from "../../models/productSKU.model.js";
 import { ObjectId } from "mongodb";
+import { prisma } from "../../app.js";
 
 export const listFeaturedProductsController = async (req: Request, res: Response, next: NextFunction) => {
     try {
         // Fetch the featured products, sorted by order
-        const featuredProducts = await FeaturedProductModel.find({ P01_deleted_at: null })
-            .populate({
-                path: 'P01_M06_product_id',
-                select: 'M06_sku M06_product_sku_name M06_description M06_thumbnail_image M06_MRP M06_price M06_quantity M06_is_new',
-
-            })
-            .sort({ P01_order: 1 });
+        const featuredProducts = await prisma.p01_featured_product.findMany({
+            where:{
+                deleted_at: null
+            },
+            include:{
+                P01_M06_product_id:true
+            },
+            orderBy:{
+                p01_order:'asc'
+            }
+        })
 
       
 
@@ -28,19 +33,16 @@ export const listFeaturedProductsController = async (req: Request, res: Response
 
 export const addFeaturedProductController = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const { P01_product_id, P01_is_active = 1 } = req.body;
+        const { p01_product_id, p01_is_active = 1 } = req.body;
 
-        // Validate product existence
-        const productExists = await ProductSKU.findById(P01_product_id);
-        if (!productExists) {
-            return res.status(400).json({
-                success: false,
-                msg: "Product does not exist",
-            });
-        }
+        
 
         // Ensure the maximum featured products are not exceeded
-        const featuredProductsCount = await FeaturedProductModel.countDocuments({ P01_deleted_at: null });
+        const featuredProductsCount = await prisma.p01_featured_product.count({
+            where:{
+                deleted_at: null
+            }
+        });
         if (featuredProductsCount >= 12) {
             return res.status(400).json({
                 success: false,
@@ -49,7 +51,12 @@ export const addFeaturedProductController = async (req: Request, res: Response, 
         }
 
         // Check if the product is already featured
-        const isProductFeatured = await FeaturedProductModel.findOne({ P01_M06_product_id: P01_product_id, P01_deleted_at: null });
+        const isProductFeatured = await prisma.p01_featured_product.findFirst({
+            where: {
+                p01_m06_product_id: Number(p01_product_id),
+                deleted_at: null
+            }
+        })
         if (isProductFeatured) {
             return res.status(400).json({
                 success: false,
@@ -57,18 +64,26 @@ export const addFeaturedProductController = async (req: Request, res: Response, 
             });
         }
 
-        // Determine the order number if not provided
-        const highestOrder = await FeaturedProductModel.findOne().sort({ P01_order: -1 });
-        const orderNumber =  (highestOrder ? highestOrder.P01_order + 1 : 1);
+        // Determine the order number using Prisma
+        const highestOrderProduct = await prisma.p01_featured_product.findFirst({
+            where: {
+                deleted_at: null
+            },
+            orderBy: {
+                p01_order: 'desc'
+            }
+        });
+        const orderNumber = (highestOrderProduct ? highestOrderProduct.p01_order + 1 : 1);
 
         // Add the product to the featured list
-        const newFeaturedProduct = new FeaturedProductModel({
-            P01_M06_product_id: P01_product_id,
-            P01_is_active,
-            P01_order: orderNumber,
-        });
+        const newFeaturedProduct = await prisma.p01_featured_product.create({
+            data: {
+                p01_m06_product_id: Number(p01_product_id),
+                p01_is_active: p01_is_active=='1'?true:false,
+                p01_order: orderNumber,
+            }
+        })
 
-        await newFeaturedProduct.save();
 
         res.status(201).json({
             success: true,
@@ -76,6 +91,7 @@ export const addFeaturedProductController = async (req: Request, res: Response, 
             data: newFeaturedProduct,
         });
     } catch (error) {
+        console.log(error)
         next(error);
     }
 };
@@ -86,13 +102,29 @@ export const deleteFeaturedProductController = async (req: Request, res: Respons
         const { id } = req.params;
 
         // Find the featured product by ID
-        const featuredProduct = await FeaturedProductModel.findByIdAndRemove(id);
-        if (!featuredProduct || featuredProduct.P01_deleted_at) {
+        const featuredProduct = await prisma.p01_featured_product.findUnique({
+            where: {
+                id: Number(id),
+                deleted_at: null
+            }
+        });
+        if (!featuredProduct) {
             return res.status(404).json({
                 success: false,
                 msg: "Product not found or already deleted",
             });
         }
+
+        // Delete the featured product
+        await prisma.p01_featured_product.updateMany({
+            where: {
+                id: Number(id),
+                deleted_at: null
+            },
+            data: {
+                deleted_at: new Date()
+            }
+        });
 
 
         res.status(200).json({
@@ -106,7 +138,7 @@ export const deleteFeaturedProductController = async (req: Request, res: Respons
 
 export const reorderFeaturedProductsController = async (req: Request<{},{},{
     featuredProducts: {
-        _id: string;
+        id: string;
     }[]
 }>, res: Response, next: NextFunction) => {
     try {
@@ -119,10 +151,16 @@ export const reorderFeaturedProductsController = async (req: Request<{},{},{
             });
         }
 
-        const featuredProductIds = featuredProducts.map(product => product._id);
+        const featuredProductIds = featuredProducts.map(product => Number(product.id));
 
         // Validate that all featured products exist
-        const productsFound = await FeaturedProductModel.find({ _id: { $in: featuredProductIds } });
+        const productsFound = await prisma.p01_featured_product.findMany({
+            where: {
+              id: {
+                in: featuredProductIds, // Array of IDs
+              },
+            },
+          });
 
         if (productsFound.length !== featuredProducts.length) {
             return res.status(400).json({
@@ -135,19 +173,22 @@ export const reorderFeaturedProductsController = async (req: Request<{},{},{
 
         // Prepare the update payload
         const featuredProductsToUpdate = featuredProductIds.map((product, index) => ({
-            _id: new ObjectId(product),
-            P01_order: index + 1, // Set the order based on position in the sorted array
+            id: product,
+            p01_order: index + 1, // Set the order based on position in the sorted array
         }));
 
-        // Perform bulk update to reorder the products
-        const updatedFeaturedProducts = await FeaturedProductModel.bulkWrite(
-            featuredProductsToUpdate.map(product => ({
-                updateOne: {
-                    filter: { _id: product._id },
-                    update: { $set: { P01_order: product.P01_order } },
-                }
-            }))
-        );
+        const updatedFeaturedProducts = await prisma.$transaction(
+            featuredProductsToUpdate.map(product => 
+              prisma.p01_featured_product.update({
+                where: {
+                  id: product.id, // Use the product's _id (assuming _id maps to id in your schema)
+                },
+                data: {
+                  p01_order: product.p01_order, // Update the P01_order field
+                },
+              })
+            )
+          );
 
         // Return success response
         return res.status(200).json({
