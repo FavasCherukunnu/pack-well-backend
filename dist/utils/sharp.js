@@ -5,7 +5,8 @@ export const compressImage = async ({ inputPath, quality, extension, outputPath 
         const generateUniqueId = () => {
             return uuidv4();
         };
-        const compressedImagePath = `${process.cwd()}/${outputPath}/${generateUniqueId()}-compressed.${extension}`;
+        const uuuid = generateUniqueId();
+        const compressedImagePath = `${process.cwd()}/${outputPath}/${uuuid}-compressed.${extension}`;
         // Use the appropriate format (jpeg, png, webp) dynamically
         sharp.cache(false);
         const sharpInstance = sharp(inputPath);
@@ -22,7 +23,7 @@ export const compressImage = async ({ inputPath, quality, extension, outputPath 
             default:
                 throw new Error('Invalid image format');
         }
-        return `${outputPath}/${generateUniqueId()}-compressed.${extension}`; // Return the path of the compressed image
+        return `${outputPath}/${uuuid}-compressed.${extension}`; // Return the path of the compressed image
     }
     catch (error) {
         console.error('Error compressing image:', error);

@@ -2,7 +2,6 @@ import { ApiResponse } from "../../utils/ApiResponse.js";
 import { ApiError } from "../../utils/ApiError.js";
 import { ProductSKU } from "../../models/productSKU.model.js";
 import { ProductSKUImage } from "../../models/productSKUimage.model.js";
-import { ProductVariationConfiguration } from "../../models/productVariationConfiguration.model.js";
 import { ObjectId } from "mongodb";
 import { deleteImageFromFileSystem, removeAllImageFromFileSystem } from "../../utils/fileSystem.js";
 import { deleteImageFromCloudinary, uploadImageoncloudinay } from "../../utils/cloudinary.js";
@@ -169,106 +168,23 @@ export const updateSKUController = async (req, res, next) => {
 export const readSKUController = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const skuData = await ProductSKU.aggregate([
-            { $match: { _id: new ObjectId(id) } },
-            {
-                $lookup: {
-                    from: 'm07_product_sku_images',
-                    localField: '_id',
-                    foreignField: 'M07_M06_product_sku_id',
-                    as: 'Images',
-                    pipeline: [
-                        { $match: { M07_is_active: 1, M07_deleted_at: null } },
-                        {
-                            $project: {
-                                M07_image_path: 1,
-                                M07_M06_product_sku_id: 1,
-                                M07_order: 1,
-                                M07_is_active: 1,
-                            },
-                        },
-                        {
-                            $sort: {
-                                M07_order: 1
-                            }
-                        },
-                    ],
-                },
+        const skuData = await prisma.m06_sku.findUnique({
+            where: {
+                id: Number(id),
+                deleted_at: null
             },
-            {
-                $lookup: {
-                    from: 'm10_product_variation_configurations',
-                    localField: '_id',
-                    foreignField: 'M10_M06_product_sku_id',
-                    as: 'Variations',
-                    pipeline: [
-                        { $match: { M10_is_active: 1, M10_deleted_at: null } },
-                        {
-                            $lookup: {
-                                from: 'm08_product_variations',
-                                localField: 'M10_M08_product_variation_id',
-                                foreignField: '_id',
-                                as: 'product_variation',
-                                pipeline: [
-                                    { $project: { M08_name: 1, M08_M05_product_id: 1, M08_is_active: 1 } },
-                                ],
-                            },
-                        },
-                        {
-                            $lookup: {
-                                from: 'm09_product_variation_options',
-                                localField: 'M10_M09_variation_option_id',
-                                foreignField: '_id',
-                                as: 'variation_option',
-                                pipeline: [
-                                    { $project: { M09_name: 1, M09_M05_product_id: 1, M09_M08_product_variation_id: 1, M09_is_active: 1 } },
-                                ],
-                            },
-                        },
-                        {
-                            $unwind: { path: '$product_variation', preserveNullAndEmptyArrays: true },
-                        },
-                        {
-                            $unwind: { path: '$variation_option', preserveNullAndEmptyArrays: true },
-                        },
-                        {
-                            $project: {
-                                M10_M08_product_variation_id: 1, M08_name: '$product_variation.M08_name',
-                                M08_M05_product_id: '$product_variation.M08_M05_product_id',
-                                M08_is_active: '$product_variation.M08_is_active',
-                                M10_M09_variation_option_id: 1, M09_name: '$variation_option.M09_name',
-                                M09_M05_product_id: '$variation_option.M09_M05_product_id',
-                                M09_M08_product_variation_id: '$variation_option.M09_M08_product_variation_id',
-                                M09_is_active: '$variation_option.M09_is_active',
-                                M10_M06_product_sku_id: 1
-                            },
-                        },
-                    ],
-                },
-            },
-            {
-                $project: {
-                    _id: 1,
-                    M06_sku: 1,
-                    M06_product_sku_name: 1,
-                    M06_description: 1,
-                    M06_thumbnail_image: 1,
-                    M06_MRP: 1,
-                    M06_price: 1,
-                    M06_quantity: 1,
-                    M06_is_new: 1,
-                    M06_single_order_limit: 1,
-                    M06_is_active: 1,
-                    M06_M05_product_id: 1,
-                    Images: 1,
-                    Variations: 1,
-                },
-            },
-        ]);
-        if (skuData.length < 1) {
+            include: {
+                m07_sku_image: true
+            }
+        });
+        if (!skuData) {
             return res.status(404).json({ success: false, message: 'SKU not found' });
         }
-        return res.status(200).json(new ApiResponse(true, 200, "Successfully read product sku", skuData[0]));
+        return res.status(200).json(new ApiResponse(true, 200, "Successfully read product sku", {
+            ...skuData,
+            Images: skuData.m07_sku_image,
+            m07_sku_image: undefined
+        }));
     }
     catch (error) {
         next(error);
@@ -312,21 +228,26 @@ export const listSkuController = async (req, res, next) => {
 export const deleteSkuController = async (req, res, next) => {
     try {
         const id = req.params.id;
-        const sku = await ProductSKU.findOne({ _id: id, M06_deleted_at: null });
-        console.log(id);
+        const sku = await prisma.m06_sku.update({
+            where: { id: Number(id), deleted_at: null },
+            data: { deleted_at: new Date() }
+        });
         if (!sku) {
             return next(new Error("Product sku not found"));
         }
-        if (sku.M06_thumbnail_image) {
-            await deleteImageFromCloudinary(sku.M06_thumbnail_image);
+        if (sku.m06_thumbnail_image) {
+            await deleteImageFromFileSystem(sku.m06_thumbnail_image);
         }
-        const images = await ProductSKUImage.find({ M07_M06_product_sku_id: id });
-        await Promise.all(images.map(image => deleteImageFromCloudinary(image.M07_image_path)));
-        await ProductSKUImage.updateMany({ M07_M06_product_sku_id: id }, { M07_deleted_at: new Date() });
-        await ProductVariationConfiguration.updateMany({ M10_M06_product_sku_id: id }, { M10_deleted_at: new Date() });
-        const deleted_sku = await ProductSKU.findByIdAndUpdate(id, {
-            M06_deleted_at: new Date()
-        }, { new: true });
+        // Update the records by setting deleted_at
+        await prisma.m07_sku_image.updateMany({
+            where: { m07_m06_product_sku_id: Number(id), deleted_at: null },
+            data: { deleted_at: new Date() },
+        });
+        // Fetch the updated records to get the image paths
+        const images = await prisma.m07_sku_image.findMany({
+            where: { m07_m06_product_sku_id: Number(id), deleted_at: { not: null } },
+        });
+        await Promise.all(images.map(image => deleteImageFromFileSystem(image.m07_image_path)));
         res.status(200).json(new ApiResponse(true, 200, "successfully deleted product sku", "successfully deleted product sku"));
     }
     catch (error) {
