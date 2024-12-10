@@ -3,7 +3,7 @@ import { z } from "zod";
 import { verifyJWTorRefreshJWT } from "../middlewares/auth.middleware.js";
 import { upload } from "../middlewares/multer.middleware.js";
 import { validateDataMiddleWare, validateParamsMiddleWare } from "../middlewares/zod.validation.middleware.js";
-import { listSkuController, listSkuSingleByProductController, readSKUController } from "../controllers/customer/product_sku.controllers.js";
+import { listSkuController,  readSKUController } from "../controllers/customer/product_sku.controllers.js";
 
 const router = Router();
 
@@ -51,7 +51,6 @@ router.get('/product-sku-single-by-product',
         }).optional(),z.number().optional()]).optional(),
         categoryId:z.string().optional(),
     })),
-    listSkuSingleByProductController
 )
 
 

@@ -11,9 +11,7 @@ import { ProductSKURouterCustomer } from "./routes/customer.productSKU.routes.js
 import { TestRouter } from "./routes/test.routes.js";
 import { ProductCategoryRouterCustomer } from "./routes/customer.productcategory.routes.js";
 import session from "express-session";
-import { CustomerOrderRouterCustomer } from "./routes/customer.order.routes.js";
 import { CustomerRouter } from "./routes/customer.routes.js";
-import { VariationRouterCustomer } from "./routes/customer.variations.routes.js";
 import { AdminOrderRouterCustomer } from "./routes/admin.order.routes.js";
 import { AdminCarouselRouterCustomer } from "./routes/admin.carousels.routes.js";
 import { CustomerCarouselRouterCustomer } from "./routes/customer.carousels.routes.js";
@@ -59,6 +57,6 @@ app.use(session({
 }));
 app.use('/test', TestRouter);
 app.use('/api/v1/admin', AdminRouter, ProductCategoryRouter, ProductVariationRouter, ProductSKURouter, AdminOrderRouterCustomer, AdminCarouselRouterCustomer, AdminFeaturedProductRouter);
-app.use('/api/v1/customer', CustomerRouter, VariationRouterCustomer, ProductSKURouterCustomer, ProductCategoryRouterCustomer, CustomerOrderRouterCustomer, CustomerCarouselRouterCustomer, customerFeaturedProductRouter);
+app.use('/api/v1/customer', CustomerRouter, ProductSKURouterCustomer, ProductCategoryRouterCustomer, CustomerCarouselRouterCustomer, customerFeaturedProductRouter);
 app.use(errorHandlingMiddleware);
 export { app };

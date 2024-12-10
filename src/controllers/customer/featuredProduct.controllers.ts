@@ -1,14 +1,25 @@
 import { NextFunction, Request, Response } from "express";
 import { prisma } from "../../app.js";
 
-export const listFeaturedProductsController = async (req: Request, res: Response, next: NextFunction) => {
+export const listFeaturedProductsController = async (req: Request<{}, {}, {}, { limit?: string }>, res: Response, next: NextFunction) => {
     try {
+        const {
+            limit = 16
+        } = req.query
+
+
+
+
         const featuredProducts = await prisma.p01_featured_product.findMany({
-            where:{
+            where: {
                 deleted_at: null
             },
-            include:{
-                P01_M06_product_id:true
+            include: {
+                P01_M06_product_id: true
+            },
+            take: Number(limit),
+            orderBy: {
+                p01_order: 'asc'
             }
         });
 

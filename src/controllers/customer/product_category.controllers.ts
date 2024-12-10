@@ -1,27 +1,40 @@
-import { NextFunction, Response } from "express";
+import { NextFunction, Request, Response } from "express";
 import { ProductCategory } from "../../models/productCategory.model.js";
 import { TypedRequestBody } from "../../types/index.js";
 import { ApiResponse } from "../../utils/ApiResponse.js";
+import { prisma } from "../../app.js";
 
 
-
-
-export const listProductCategoryControllercustomer = async (req: TypedRequestBody<{}>, res: Response, next: NextFunction) => {
+export const listProductCategoryControllercustomer = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const { page = 1, limit = 10 } = req.query;
+        const { page = 1, limit = 10, m04_m04_parent_category_id } = req.query;
 
         // Convert page and limit to numbers and ensure valid values
         const pageNumber = Math.max(Number(page), 1);
         const limitNumber = Math.max(Number(limit), 1);
 
-        // Fetch the product categories with pagination
-        const productCategories = await ProductCategory.find({ M04_deleted_at: null })
-            .skip((pageNumber - 1) * limitNumber)
-            .limit(limitNumber);
+        // Build the `where` condition
+        const whereCondition: any = {
+            deleted_at: null, // Filter out deleted categories
+        };
 
-        const totalCategories = await ProductCategory.countDocuments({ M04_deleted_at: null });
+        if (m04_m04_parent_category_id) {
+            whereCondition.m04_m04_parent_category_id = m04_m04_parent_category_id==="null" ? null : Number(m04_m04_parent_category_id); // Filter by parent category ID
+        }
 
+        // Fetch the product categories with pagination and filtering based on parentCategoryId
+        const productCategories = await prisma.m04_product_category.findMany({
+            where: whereCondition,
+            skip: (pageNumber - 1) * limitNumber,
+            take: limitNumber,
+        });
 
+        // Get the total count of product categories
+        const totalCategories = await prisma.m04_product_category.count({
+            where: whereCondition,
+        });
+
+        // Calculate total pages
         const totalPages = Math.ceil(totalCategories / limitNumber);
 
         res.status(200).json(
@@ -39,4 +52,3 @@ export const listProductCategoryControllercustomer = async (req: TypedRequestBod
         next(error);
     }
 };
-

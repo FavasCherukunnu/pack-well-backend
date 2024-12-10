@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { validateParamsMiddleWare } from "../middlewares/zod.validation.middleware.js";
-import { listSkuController, listSkuSingleByProductController, readSKUController } from "../controllers/customer/product_sku.controllers.js";
+import { listSkuController, readSKUController } from "../controllers/customer/product_sku.controllers.js";
 const router = Router();
 router.get('/product-sku/:id', readSKUController);
 router.get('/product-sku', validateParamsMiddleWare(z.object({
@@ -39,5 +39,5 @@ router.get('/product-sku-single-by-product', validateParamsMiddleWare(z.object({
             message: "maxPrice must be a number",
         }).optional(), z.number().optional()]).optional(),
     categoryId: z.string().optional(),
-})), listSkuSingleByProductController);
+})));
 export { router as ProductSKURouterCustomer };
