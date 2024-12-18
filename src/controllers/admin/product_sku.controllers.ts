@@ -1,18 +1,11 @@
-import { Request, Response, NextFunction } from "express";
-import { ApiResponse } from "../../utils/ApiResponse.js";
-import { ApiError } from "../../utils/ApiError.js";
-import { ProductSKU } from "../../models/productSKU.model.js";
-import { IProductSKUImage, ProductSKUImage } from "../../models/productSKUimage.model.js";
-import { IProductVariationConfiguration, ProductVariationConfiguration } from "../../models/productVariationConfiguration.model.js";
-import { ObjectId } from "mongodb";
-import fs from "fs";
-import { TypedRequestBody } from "../../types/index.js";
-import { ProductVariationOption } from "../../models/productVariationOption.js";
-import { deleteImageFromFileSystem, removeAllImageFromFileSystem } from "../../utils/fileSystem.js";
-import { deleteImageFromCloudinary, uploadImageoncloudinay } from "../../utils/cloudinary.js";
-import { ProductVariation } from "../../models/productVariation.model.js";
-import { compressImage } from "../../utils/sharp.js";
+import { NextFunction, Request, Response } from "express";
 import { prisma } from "../../app.js";
+import { TypedRequestBody } from "../../types/index.js";
+import { ApiError } from "../../utils/ApiError.js";
+import { ApiResponse } from "../../utils/ApiResponse.js";
+import { deleteImageFromCloudinary } from "../../utils/cloudinary.js";
+import { deleteImageFromFileSystem, removeAllImageFromFileSystem } from "../../utils/fileSystem.js";
+import { compressImage } from "../../utils/sharp.js";
 
 export type CreateSkuRequest = {
     Sku: {
@@ -369,7 +362,7 @@ export const deleteSkuController = async (req: TypedRequestBody<{}>, res: Respon
         }
 
         if (sku.m06_thumbnail_image) {
-            await deleteImageFromFileSystem(sku.m06_thumbnail_image);
+            deleteImageFromFileSystem(sku.m06_thumbnail_image);
         }
 
         // Update the records by setting deleted_at
@@ -387,6 +380,20 @@ export const deleteSkuController = async (req: TypedRequestBody<{}>, res: Respon
             images.map(image => deleteImageFromFileSystem(image.m07_image_path))
         );
 
+        // delete the featured product if this product is featured
+        const featuredProduct = await prisma.p01_featured_product.findFirst({
+            where:{
+                deleted_at: null,
+                p01_m06_product_id: Number(id)
+            }
+        })
+
+        if (featuredProduct) {
+            await prisma.p01_featured_product.update({
+                where: { id: featuredProduct.id },
+                data: { deleted_at: new Date() }
+            });
+        }
 
         res.status(200).json(new ApiResponse(true, 200, "successfully deleted product sku", "successfully deleted product sku"));
 

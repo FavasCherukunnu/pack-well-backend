@@ -52,9 +52,8 @@ export const deleteProductCategoryController = async (req: TypedRequestBody<{}>,
         const { id } = req.params;
 
         // Find the product category by ID and check if it has been deleted already
-        const productCategory = await prisma.m04_product_category.update({
+        const productCategory = await prisma.m04_product_category.findFirst({
             where:{ id: Number(id), deleted_at: null },
-            data: { deleted_at: new Date() }
         });
         if (!productCategory) {
             return res.status(404).json(new ApiResponse(false, 404, "Product category not found", null));

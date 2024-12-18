@@ -1,9 +1,9 @@
-import { ApiResponse } from "../../utils/ApiResponse.js";
-import { ApiError } from "../../utils/ApiError.js";
-import { deleteImageFromFileSystem, removeAllImageFromFileSystem } from "../../utils/fileSystem.js";
-import { deleteImageFromCloudinary } from "../../utils/cloudinary.js";
-import { compressImage } from "../../utils/sharp.js";
 import { prisma } from "../../app.js";
+import { ApiError } from "../../utils/ApiError.js";
+import { ApiResponse } from "../../utils/ApiResponse.js";
+import { deleteImageFromCloudinary } from "../../utils/cloudinary.js";
+import { deleteImageFromFileSystem, removeAllImageFromFileSystem } from "../../utils/fileSystem.js";
+import { compressImage } from "../../utils/sharp.js";
 export const createSKUController = async (req, res, next) => {
     const Images = [];
     let m06_thumbnail_image = undefined;
@@ -245,7 +245,7 @@ export const deleteSkuController = async (req, res, next) => {
             return next(new Error("Product sku not found"));
         }
         if (sku.m06_thumbnail_image) {
-            await deleteImageFromFileSystem(sku.m06_thumbnail_image);
+            deleteImageFromFileSystem(sku.m06_thumbnail_image);
         }
         // Update the records by setting deleted_at
         await prisma.m07_sku_image.updateMany({
@@ -257,6 +257,19 @@ export const deleteSkuController = async (req, res, next) => {
             where: { m07_m06_product_sku_id: Number(id), deleted_at: { not: null } },
         });
         await Promise.all(images.map(image => deleteImageFromFileSystem(image.m07_image_path)));
+        // delete the featured product if this product is featured
+        const featuredProduct = await prisma.p01_featured_product.findFirst({
+            where: {
+                deleted_at: null,
+                p01_m06_product_id: Number(id)
+            }
+        });
+        if (featuredProduct) {
+            await prisma.p01_featured_product.update({
+                where: { id: featuredProduct.id },
+                data: { deleted_at: new Date() }
+            });
+        }
         res.status(200).json(new ApiResponse(true, 200, "successfully deleted product sku", "successfully deleted product sku"));
     }
     catch (error) {

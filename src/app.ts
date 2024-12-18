@@ -18,6 +18,7 @@ import { CustomerCarouselRouterCustomer } from "./routes/customer.carousels.rout
 import { AdminFeaturedProductRouter } from "./routes/admin.featuredProduct.routes.js";
 import { customerFeaturedProductRouter } from "./routes/customer.featuredProduct.routes.js";
 import { PrismaClient } from "@prisma/client";
+import { EnquiryRouterCustomer } from "./routes/customer.enquiry.routes.js";
 
 export const prisma = new PrismaClient();
 
@@ -83,7 +84,8 @@ app.use('/api/v1/customer',
     ProductSKURouterCustomer,
     ProductCategoryRouterCustomer,
     CustomerCarouselRouterCustomer,
-    customerFeaturedProductRouter
+    customerFeaturedProductRouter,
+    EnquiryRouterCustomer
 )
 
 app.use(errorHandlingMiddleware)

@@ -18,6 +18,7 @@ import { CustomerCarouselRouterCustomer } from "./routes/customer.carousels.rout
 import { AdminFeaturedProductRouter } from "./routes/admin.featuredProduct.routes.js";
 import { customerFeaturedProductRouter } from "./routes/customer.featuredProduct.routes.js";
 import { PrismaClient } from "@prisma/client";
+import { EnquiryRouterCustomer } from "./routes/customer.enquiry.routes.js";
 export const prisma = new PrismaClient();
 const allowedOrigins = process.env.CORS_ORIGIN.split(',');
 const corsOptions = {
@@ -57,6 +58,6 @@ app.use(session({
 }));
 app.use('/test', TestRouter);
 app.use('/api/v1/admin', AdminRouter, ProductCategoryRouter, ProductVariationRouter, ProductSKURouter, AdminOrderRouterCustomer, AdminCarouselRouterCustomer, AdminFeaturedProductRouter);
-app.use('/api/v1/customer', CustomerRouter, ProductSKURouterCustomer, ProductCategoryRouterCustomer, CustomerCarouselRouterCustomer, customerFeaturedProductRouter);
+app.use('/api/v1/customer', CustomerRouter, ProductSKURouterCustomer, ProductCategoryRouterCustomer, CustomerCarouselRouterCustomer, customerFeaturedProductRouter, EnquiryRouterCustomer);
 app.use(errorHandlingMiddleware);
 export { app };
