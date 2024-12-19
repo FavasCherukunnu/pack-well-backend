@@ -10,6 +10,7 @@ import { compressImage } from "../../utils/sharp.js";
 export type CreateSkuRequest = {
     Sku: {
         m06_sku: string,
+        m06_meta_description: string,
         m06_product_sku_name: string,
         m06_thumbnail_image: Express.Multer.File,
         m06_description: string,
@@ -33,6 +34,7 @@ export type CreateSkuRequest = {
 
 export type UpdateSkuRequest = {
     m06_sku: string,
+    m06_meta_description: string,
     m06_product_sku_name: string,
     m06_thumbnail_image: Express.Multer.File,
     m06_description: string,
@@ -62,7 +64,8 @@ export const createSKUController = async (req: TypedRequestBody<CreateSkuRequest
         const { m06_sku, m06_product_sku_name, m06_description,
             m06_mrp, m06_price, m06_quantity, m06_is_new,
             m06_single_order_limit, m06_is_active,
-            m06_m04_product_category_id
+            m06_m04_product_category_id,
+            m06_meta_description
         } = Sku;
 
 
@@ -138,6 +141,7 @@ export const createSKUController = async (req: TypedRequestBody<CreateSkuRequest
             data: {
                 m06_sku,
                 m06_product_sku_name,
+                m06_meta_description,
                 m06_thumbnail_image: compressedThumbnailImage,
                 m06_description,
                 m06_mrp: Number(m06_mrp),
@@ -186,7 +190,7 @@ export const updateSKUController = async (req: TypedRequestBody<UpdateSkuRequest
     const M06_thumbnail_image = (req.files as any)?.m06_thumbnail_image?.[0] as Express.Multer.File;
     try {
         const { id } = req.params;
-        const { m06_sku, m06_product_sku_name, m06_description, m06_mrp, m06_price, m06_quantity, m06_is_new, m06_single_order_limit, m06_is_active, is_thumnail_new, m06_m04_product_category_id } = req.body;
+        const { m06_sku,m06_meta_description, m06_product_sku_name, m06_description, m06_mrp, m06_price, m06_quantity, m06_is_new, m06_single_order_limit, m06_is_active, is_thumnail_new, m06_m04_product_category_id } = req.body;
 
         const IproductSKU = await prisma.m06_sku.findUnique({ where: { id: Number(id), deleted_at: null } });
         if (!IproductSKU) {
@@ -236,6 +240,7 @@ export const updateSKUController = async (req: TypedRequestBody<UpdateSkuRequest
             data: {
                 m06_sku,
                 m06_product_sku_name,
+                m06_meta_description,
                 m06_description,
                 m06_mrp: Number(m06_mrp),
                 m06_price: Number(m06_price),

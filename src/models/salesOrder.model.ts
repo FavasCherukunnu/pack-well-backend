@@ -4,10 +4,10 @@ import mongoose, { Document, Schema } from "mongoose";
 import AutoIncrementFactory from 'mongoose-sequence';
 
 // Create a Mongoose connection
-const connection = mongoose.createConnection(process.env.MONGODB_URI!);
+// const connection = mongoose.createConnection(process.env.MONGODB_URI!);
 
 // Initialize the AutoIncrement plugin with the connection
-const AutoIncrement = AutoIncrementFactory(connection as any);
+// const AutoIncrement = AutoIncrementFactory(connection as any);
 
 export interface ISalesOrder extends Document {
     O03_order_id: number;
@@ -64,7 +64,7 @@ const SalesOrderSchema: Schema<ISalesOrder> = new Schema({
 });
 
 
-SalesOrderSchema.plugin(AutoIncrement as any, { inc_field: 'O03_order_id',start_seq: 30000});
+// SalesOrderSchema.plugin(AutoIncrement as any, { inc_field: 'O03_order_id',start_seq: 30000});
 
 export const SalesOrderModel = mongoose.model<ISalesOrder>("O03_sales_orders", SalesOrderSchema);
 

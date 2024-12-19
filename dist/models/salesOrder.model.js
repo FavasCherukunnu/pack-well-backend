@@ -1,9 +1,4 @@
 import mongoose, { Schema } from "mongoose";
-import AutoIncrementFactory from 'mongoose-sequence';
-// Create a Mongoose connection
-const connection = mongoose.createConnection(process.env.MONGODB_URI);
-// Initialize the AutoIncrement plugin with the connection
-const AutoIncrement = AutoIncrementFactory(connection);
 const SalesOrderSchema = new Schema({
     O03_order_id: { type: Number, unique: true },
     O03_M02_user_id: { type: Schema.Types.ObjectId, required: true, ref: "M02_user" },
@@ -33,5 +28,5 @@ const SalesOrderSchema = new Schema({
 }, {
     timestamps: true,
 });
-SalesOrderSchema.plugin(AutoIncrement, { inc_field: 'O03_order_id', start_seq: 30000 });
+// SalesOrderSchema.plugin(AutoIncrement as any, { inc_field: 'O03_order_id',start_seq: 30000});
 export const SalesOrderModel = mongoose.model("O03_sales_orders", SalesOrderSchema);

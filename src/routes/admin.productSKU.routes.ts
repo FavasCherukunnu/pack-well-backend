@@ -10,6 +10,7 @@ const router = Router();
 const productSKUcreateSchema = z.object({
     Sku: z.object({
         m06_sku: z.string().trim().min(1, "SKU is required"),
+        m06_meta_description: z.string().optional(),
         m06_product_sku_name: z.string().trim().min(1, "Product SKU name is required").max(100, "SKU name must be less than 100 characters"),
         m06_description: z.string().trim().min(1, "Product SKU description is required"),
         m06_mrp: z.union([z.number(), z.string()]).refine(
@@ -50,6 +51,7 @@ router.post('/product-sku',
 
 const productSKUUpdateSchema = z.object({
     m06_sku: z.string().trim().min(1, "SKU is required"),
+    m06_meta_description: z.string().optional(),
     m06_product_sku_name: z.string().trim().min(1, "Product SKU name is required").max(100, "SKU name must be less than 100 characters"),
     m06_description: z.string().trim().min(1, "Product SKU description is required"),
     m06_mrp: z.union([z.number(), z.string()]).refine(

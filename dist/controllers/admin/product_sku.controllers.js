@@ -10,7 +10,7 @@ export const createSKUController = async (req, res, next) => {
     let compressedThumbnailImage = '';
     try {
         const { Sku } = req.body;
-        const { m06_sku, m06_product_sku_name, m06_description, m06_mrp, m06_price, m06_quantity, m06_is_new, m06_single_order_limit, m06_is_active, m06_m04_product_category_id } = Sku;
+        const { m06_sku, m06_product_sku_name, m06_description, m06_mrp, m06_price, m06_quantity, m06_is_new, m06_single_order_limit, m06_is_active, m06_m04_product_category_id, m06_meta_description } = Sku;
         // Dynamically add images to the Images array
         if (Array.isArray(req.files)) {
             req.files?.forEach((file) => {
@@ -67,6 +67,7 @@ export const createSKUController = async (req, res, next) => {
             data: {
                 m06_sku,
                 m06_product_sku_name,
+                m06_meta_description,
                 m06_thumbnail_image: compressedThumbnailImage,
                 m06_description,
                 m06_mrp: Number(m06_mrp),
@@ -104,7 +105,7 @@ export const updateSKUController = async (req, res, next) => {
     const M06_thumbnail_image = req.files?.m06_thumbnail_image?.[0];
     try {
         const { id } = req.params;
-        const { m06_sku, m06_product_sku_name, m06_description, m06_mrp, m06_price, m06_quantity, m06_is_new, m06_single_order_limit, m06_is_active, is_thumnail_new, m06_m04_product_category_id } = req.body;
+        const { m06_sku, m06_meta_description, m06_product_sku_name, m06_description, m06_mrp, m06_price, m06_quantity, m06_is_new, m06_single_order_limit, m06_is_active, is_thumnail_new, m06_m04_product_category_id } = req.body;
         const IproductSKU = await prisma.m06_sku.findUnique({ where: { id: Number(id), deleted_at: null } });
         if (!IproductSKU) {
             return next(new ApiError(404, "Product SKU not found", "Product SKU not found"));
@@ -147,6 +148,7 @@ export const updateSKUController = async (req, res, next) => {
             data: {
                 m06_sku,
                 m06_product_sku_name,
+                m06_meta_description,
                 m06_description,
                 m06_mrp: Number(m06_mrp),
                 m06_price: Number(m06_price),

@@ -51,6 +51,7 @@ model m04_product_category {
 
 model m06_sku {
   id                       Int       @id @default(autoincrement()) // Auto-incremented ID
+  m06_meta_description     String?    @db.Text // Text field (no length limit) // Max length 255 characters
   m06_sku                  String    @db.VarChar(255) // Max length 255 characters
   m06_m04_product_category Int // Foreign Key
   m06_product_sku_name     String    @db.VarChar(255) // Max length 255 characters
@@ -115,5 +116,14 @@ model m08_enquiries {
   updated_at    DateTime  @updatedAt                    // Timestamp for record updates
   deleted_at    DateTime? // Nullable field for soft delete (NULL if not deleted)
 
+}
+
+
+model m08_configuration_phone_number {
+  id               Int       @id @default(autoincrement())  // Primary key, auto-incremented
+  m08_phone_number String    @db.VarChar(20)                // Phone number with max length of 20
+  created_at       DateTime  @default(now())                // Timestamp for record creation
+  updated_at       DateTime  @updatedAt                     // Timestamp for record updates
+  deleted_at       DateTime? // Nullable field for soft delete (NULL if not deleted)
 }
 
