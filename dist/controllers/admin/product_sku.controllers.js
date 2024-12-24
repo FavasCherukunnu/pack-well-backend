@@ -210,7 +210,7 @@ export const listSkuController = async (req, res, next) => {
         const filter = { deleted_at: null };
         const skus = await prisma.m06_sku.findMany({
             where: filter,
-            skip: Number(page) - 1,
+            skip: (Number(page) - 1) * limitNumber,
             take: limitNumber, // Equivalent to limit
             orderBy: {
                 id: 'asc', // Optional: Order categories by ID
