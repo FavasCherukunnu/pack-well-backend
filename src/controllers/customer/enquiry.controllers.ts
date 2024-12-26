@@ -2,14 +2,25 @@ import { NextFunction, Request, Response } from "express";
 import { prisma } from "../../app.js";
 import { ApiResponse } from "../../utils/ApiResponse.js";
 
-export const createEnquiryController = async (req: Request, res: Response, next: NextFunction) => {
+export const createEnquiryController = async (req: Request<
+    {},{}, {
+            m09_name: string,
+            m09_company_name: string | null,
+            m09_phone: string | null,
+            m09_enquiry: string,
+            m09_email: string,
+        }
+    >, res: Response, next: NextFunction) => {
     try {
-        const { m08_name, m08_address } = req.body;
+        const { m09_name, m09_company_name, m09_phone, m09_enquiry, m09_email,} = req.body;
         
-        const enquiry = await prisma.m08_enquiries.create({
+        const enquiry = await prisma.m09_enquiries.create({
             data: {
-                m08_name: m08_name,
-                m08_address: m08_address,
+                m09_name: m09_name,
+                m09_company_name: m09_company_name||null,
+                m09_phone: m09_phone||null,
+                m09_enquiry: m09_enquiry,
+                m09_email: m09_email,
             }
         });
 

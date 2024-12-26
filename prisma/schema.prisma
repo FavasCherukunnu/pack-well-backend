@@ -108,15 +108,6 @@ model p01_featured_product {
   @@index([p01_m06_product_id]) // Optional index for foreign key lookup optimization
 }
 
-model m08_enquiries {
-  id               Int       @id @default(autoincrement())  // Primary key, auto-incremented
-  m08_name String      @db.VarChar(50)// Foreign key for the product
-  m08_address     String @db.VarChar(400)               // Active flag (1 for active, 0 for inactive)
-  created_at    DateTime  @default(now())               // Timestamp for record creation
-  updated_at    DateTime  @updatedAt                    // Timestamp for record updates
-  deleted_at    DateTime? // Nullable field for soft delete (NULL if not deleted)
-
-}
 
 
 model m08_configuration_phone_number {
@@ -127,3 +118,17 @@ model m08_configuration_phone_number {
   deleted_at       DateTime? // Nullable field for soft delete (NULL if not deleted)
 }
 
+
+model m09_enquiries {
+  id               Int       @id @default(autoincrement())  // Primary key, auto-incremented
+  m09_name         String    @db.VarChar(255)
+  m09_company_name String?    @db.VarChar(255)
+  m09_phone        String?    @db.VarChar(20)
+  m09_enquiry     String?    @db.Text
+  m09_email        String    @db.VarChar(255)
+  m09_is_read      Boolean   @default(false)
+  created_at       DateTime  @default(now())               // Timestamp for record creation
+  updated_at       DateTime  @updatedAt                    // Timestamp for record updates
+  deleted_at       DateTime? // Nullable field for soft delete (NULL if not deleted)
+
+}

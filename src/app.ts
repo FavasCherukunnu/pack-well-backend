@@ -20,6 +20,7 @@ import { customerFeaturedProductRouter } from "./routes/customer.featuredProduct
 import { PrismaClient } from "@prisma/client";
 import { EnquiryRouterCustomer } from "./routes/customer.enquiry.routes.js";
 import { configurationController } from "./routes/admin.configuration.routes.js";
+import { AdminEnquiryRouter } from "./routes/admin.enquiry.routes.js";
 
 export const prisma = new PrismaClient();
 
@@ -78,7 +79,8 @@ app.use('/api/v1/admin',
     AdminOrderRouterCustomer,
     AdminCarouselRouterCustomer,
     AdminFeaturedProductRouter,
-    configurationController
+    configurationController,
+    AdminEnquiryRouter
 )
 
 app.use('/api/v1/customer',
